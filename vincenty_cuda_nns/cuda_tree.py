@@ -47,7 +47,7 @@ class CudaTree:
         self.unshuffle = partial(unshuffle, idx_array=self.idx_array)
         self.map_idx = partial(map_idx, idx_array=self.idx_array)
 
-    def query(self, n_neighbors=2, threadsperblock=64):
+    def query(self,data, n_neighbors=2, threadsperblock=64):
         """
         Search nearest neighbors for each point inside the tree
 
@@ -60,16 +60,35 @@ class CudaTree:
                  indices: each entry gives the list of indices of neighbors of
                           the corresponding point
         """
-        n = len(self.data)
+        n = len(data)
 
         distances = np.zeros((n, n_neighbors), dtype=np.float32)
         distances[:] = np.inf
         indices = np.zeros((n, n_neighbors), dtype=np.int32)
 
-        new_points = self.data
-        new_points = self.shuffle(self.data)
+        new_points = data
+        new_points = self.shuffle(data)
 
         blockspergrid = int(np.ceil(n / 64))
+
+    ###
+        self.n_samples = data.shape[0]
+        self.n_features = data.shape[1]
+
+        self.n_levels = int(
+            1 + np.log2(max(1, ((self.n_samples - 1) // self.leaf_size)))
+        )
+        self.n_nodes = int(2 ** self.n_levels) - 1
+
+        self.idx_array = np.arange(self.n_samples, dtype=np.int32)
+        self.node_radius = np.zeros(self.n_nodes, dtype=np.float32)
+        self.node_idx = np.zeros((self.n_nodes, 2), dtype=np.int32)
+        self.node_centroids = np.zeros((self.n_nodes, self.n_features),
+                                       dtype=np.float32)
+
+    ###
+
+
         query[blockspergrid, threadsperblock](new_points, self.node_centroids,
                                               self.node_radius, distances,
                                               indices)
