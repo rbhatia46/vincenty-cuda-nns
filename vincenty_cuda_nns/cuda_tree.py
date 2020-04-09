@@ -60,20 +60,20 @@ class CudaTree:
                  indices: each entry gives the list of indices of neighbors of
                           the corresponding point
         """
-        n = len(data)
+        n = len(self.data)
 
         distances = np.zeros((n, n_neighbors), dtype=np.float32)
         distances[:] = np.inf
         indices = np.zeros((n, n_neighbors), dtype=np.int32)
 
-        new_points = data
-        new_points = self.shuffle(data)
+        new_points = self.data
+        new_points = self.shuffle(self.data)
 
         blockspergrid = int(np.ceil(n / 64))
 
     ###
-        self.n_samples = data.shape[0]
-        self.n_features = data.shape[1]
+        self.n_samples = self.data.shape[0]
+        self.n_features = self.data.shape[1]
 
         self.n_levels = int(
             1 + np.log2(max(1, ((self.n_samples - 1) // self.leaf_size)))
